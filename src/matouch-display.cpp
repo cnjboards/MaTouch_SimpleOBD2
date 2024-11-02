@@ -146,17 +146,27 @@ void my_encoder_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 
 // objects for display
 static lv_style_t border_style;
+static lv_style_t indicator_style;
+static lv_style_t smallIndicator_style;
 static lv_timer_t *updateMainScreenTimer;
 static lv_obj_t *Screen1;
+static lv_obj_t *engineRpmGauge;
+static lv_meter_indicator_t *engineRpmIndic;
+static lv_obj_t *engineRPMIndicator;
+static lv_obj_t *engineRPMText;
+static lv_obj_t *sogIndicator;
+static lv_obj_t *sogText;
 static lv_obj_t *screenText;
 static lv_obj_t *screenText1;
 static lv_obj_t *screenText2;
 static lv_obj_t *screenText3;
+static lv_obj_t *screenText4;
 
 // forward declarations
-static void setStyle();
+static void setStyle(void);
 static void buildScreen(void);
 static void updateMainScreen(lv_timer_t *);
+static void buildRPMGuage(void);
 
 // init lvgl graphics
 void doLvglInit(){
@@ -213,20 +223,37 @@ static void setStyle() {
     lv_style_set_text_font(&border_style, &lv_font_montserrat_24);
   #else
     lv_style_set_text_font(&border_style, &lv_font_montserrat_14);
+
+    // style for indicator readouts
+    lv_style_init(&indicator_style);
+    lv_style_set_border_width(&indicator_style, 2);
+    lv_style_set_radius(&indicator_style,4);
+    lv_style_set_border_color(&indicator_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_text_font(&indicator_style, &lv_font_montserrat_20);
+
+    // style for indicator readouts
+    lv_style_init(&smallIndicator_style);
+    lv_style_set_border_width(&smallIndicator_style, 1);
+    lv_style_set_radius(&smallIndicator_style,2);
+    lv_style_set_border_color(&smallIndicator_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_text_font(&indicator_style, &lv_font_montserrat_10);
   #endif
+
+
 } // end setstyle
 
 // decide later if we want some edge boundary
 #define MS_HIEGHT (screenHeight - 0)
 #define MS_WIDTH (screenWidth - 0) 
-
+// x direction +ve is right, -ve is left
+// y direction +ve is down, -ve is up
 #if defined(STATION_A)
     #define XOFF -150
     #define YBASE -70
     #define YINC 30
 #else
     #define XOFF -85
-    #define YBASE -30
+    #define YBASE -35
     #define YINC 20
 #endif
 
@@ -240,8 +267,13 @@ static void buildScreen(void) {
   lv_obj_set_scrollbar_mode(Screen1, LV_SCROLLBAR_MODE_OFF);
   lv_obj_clear_flag(Screen1, LV_OBJ_FLAG_SCROLLABLE);
 
+  // build the rpm screen
+  buildRPMGuage();
+
+  #if 0
   // display AP information
   screenText = lv_label_create(Screen1);
+
   // x direction +ve is right, -ve is left
   // y direction +ve is down, -ve is up
   screenText1 = lv_label_create(Screen1);
@@ -259,13 +291,102 @@ static void buildScreen(void) {
   screenText3 = lv_label_create(Screen1);
   lv_obj_align_to(screenText3, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + (3*YINC)));
   lv_label_set_text_fmt(screenText3, "Can Bus Message RX: %d", rxCount);
+
+  screenText4 = lv_label_create(Screen1);
+  lv_obj_align_to(screenText4, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + (4*YINC)));
+  lv_label_set_text_fmt(screenText4, "Dial Count: %d", counter);
+  #endif
+
 } // end buildScreen
+
+// locate engine rpm guage on the main screen relative to centre of Screen1 object
+#define RPM_GUAGE_HIEGHT 235
+#define RPM_GUAGE_WIDTH 235
+#define ENGINE_RPM_GUAGE_XOFFSET -52
+#define ENGINE_RPM_GUAGE_YOFFSET -45
+
+// build the rpm guage on the main screen
+static void buildRPMGuage() {
+  // create and rpm guage on main display
+  engineRpmGauge = lv_meter_create(Screen1);
+  // this removes the outline, allows for more usable space
+  lv_obj_remove_style(engineRpmGauge, NULL, LV_PART_MAIN);
+  
+  // Locate and set size of rpm guage
+  lv_obj_align_to(engineRpmGauge, Screen1, LV_ALIGN_CENTER, ENGINE_RPM_GUAGE_XOFFSET, ENGINE_RPM_GUAGE_YOFFSET);
+  lv_obj_set_size(engineRpmGauge, RPM_GUAGE_WIDTH, RPM_GUAGE_HIEGHT);
+  
+  /*Add a scale first*/
+  lv_meter_scale_t * scale = lv_meter_add_scale(engineRpmGauge);
+  lv_meter_set_scale_range(engineRpmGauge, scale, 0, 60, 230, 155);
+  lv_meter_set_scale_ticks(engineRpmGauge, scale, 61, 4, 20, lv_palette_main(LV_PALETTE_GREY));
+  lv_meter_set_scale_major_ticks(engineRpmGauge, scale, 10, 6, 30, lv_color_black(), 15);
+  
+  /* Green range - arc */
+  engineRpmIndic = lv_meter_add_arc(engineRpmGauge, scale, 3, lv_palette_main(LV_PALETTE_GREEN), 0);
+  lv_meter_set_indicator_start_value(engineRpmGauge, engineRpmIndic, 0);
+  lv_meter_set_indicator_end_value(engineRpmGauge, engineRpmIndic, 30);
+
+  /* Green range - ticks */
+  engineRpmIndic = lv_meter_add_scale_lines(engineRpmGauge, scale, lv_palette_main(LV_PALETTE_GREEN), lv_palette_main(LV_PALETTE_GREEN),false, 0);
+  lv_meter_set_indicator_start_value(engineRpmGauge, engineRpmIndic, 0);
+  lv_meter_set_indicator_end_value(engineRpmGauge, engineRpmIndic, 30);
+
+  /* Red range - arc */
+  engineRpmIndic = lv_meter_add_arc(engineRpmGauge, scale, 3, lv_palette_main(LV_PALETTE_BLUE), 0);
+  lv_meter_set_indicator_start_value(engineRpmGauge, engineRpmIndic, 30);
+  lv_meter_set_indicator_end_value(engineRpmGauge, engineRpmIndic, 60);
+
+  /* Red range - arc */
+  engineRpmIndic = lv_meter_add_scale_lines(engineRpmGauge, scale, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false,0);
+  lv_meter_set_indicator_start_value(engineRpmGauge, engineRpmIndic, 35);
+  lv_meter_set_indicator_end_value(engineRpmGauge, engineRpmIndic, 60);
+
+  /* Add the indicator needle and set initial value*/
+  engineRpmIndic = lv_meter_add_needle_line(engineRpmGauge, scale, 6, lv_palette_main(LV_PALETTE_BLUE_GREY), -60);
+  lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, 0);
+
+  /* some static text on the display */
+  engineRPMText = lv_label_create(engineRpmGauge);
+  lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, 20, -45);
+  lv_obj_set_style_text_font(engineRPMText, &lv_font_montserrat_20, 0);
+  lv_label_set_text(engineRPMText,"RPM \nx100");
+
+  /* display the rpm in numerical format as well */
+  engineRPMIndicator = lv_label_create(engineRpmGauge);
+  lv_obj_add_style(engineRPMIndicator, &indicator_style, 0);
+  lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -38, 18);
+  lv_obj_set_style_text_font(engineRPMIndicator, &lv_font_montserrat_34, 0);
+  lv_label_set_text_fmt(engineRPMIndicator, " %04d ", 0);
+
+  #if 0
+  /* some static text on the display */
+  sogText = lv_label_create(engineRpmGauge);
+  lv_obj_align_to(sogText, engineRpmGauge, LV_ALIGN_CENTER, -50, 77);
+  lv_obj_set_style_text_font(sogText, &lv_font_montserrat_20, 0);
+  lv_label_set_text(sogText,"SOG");
+
+  /* display the sog in numerical format as well */
+  sogIndicator = lv_label_create(engineRpmGauge);
+  lv_obj_add_style(sogIndicator, &indicator_style, 0);
+  lv_obj_align_to(sogIndicator, engineRpmGauge, LV_ALIGN_CENTER, -10, 70);
+  lv_obj_set_style_text_font(sogIndicator, &lv_font_montserrat_20, 0);
+  lv_label_set_text_fmt(sogIndicator, "%03.1f knts", (float)(locSOG * 1.944));
+  #endif
+
+} // end buildrpmguage
 
 // helper to update the main display including header bar
 static void updateMainScreen(lv_timer_t *timer)
 {
+    // update the meter
+    lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, (uint32_t)(locEngRPM/100));
+    // display engine rpm
+    lv_label_set_text_fmt(engineRPMIndicator, " %04d ", (uint32_t)(locEngRPM));
+  #if 0
   // update counts on the screen
   lv_label_set_text_fmt(screenText2, "Can Bus Message TX: %d", txCount);
   lv_label_set_text_fmt(screenText3, "Can Bus Message RX: %d", rxCount);
-
+  lv_label_set_text_fmt(screenText4, "Dial Count: %d", counter);
+  #endif
 } // end updateMainScreen

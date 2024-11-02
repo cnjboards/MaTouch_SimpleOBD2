@@ -784,7 +784,7 @@ int OBD2Class::pidRead(uint8_t mode, uint8_t pid, void* data, int length)
     if ( ESP32Can.readFrame(rxFrame, 1000) != 0 ) {
         _lastPidResponseMillis = millis();
 
-      //if (!splitResponse && rxFrame.data[1] == (mode | 0x40) && rxFrame.data[2] == pid) {
+      if (!splitResponse && rxFrame.data[1] == (mode | 0x40) && rxFrame.data[2] == pid) {
         
         // debug
         Serial.print("RX Frame: id=");
@@ -802,7 +802,7 @@ int OBD2Class::pidRead(uint8_t mode, uint8_t pid, void* data, int length)
         Serial.println();
 
         return length;
-      //} // end if
+      } // end if
 
 
       // Is multiple packets

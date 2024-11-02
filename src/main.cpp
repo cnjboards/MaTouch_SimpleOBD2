@@ -74,6 +74,9 @@ unsigned long shortDebounceDelay = 80;    // the short debounce time
 unsigned long longDebounceDelay = 1000;    // the long debounce time
 unsigned long latchClearDelay = 500;    // the time to allow latched states to be consumed befor autonomous reset
 
+
+float locEngRPM = 0;
+
 // forward declarations
 void pin_init();
 void encoder_irq();
@@ -210,6 +213,15 @@ void setupCanBus(int8_t can_tx, int8_t can_rx){
   } else {
       Serial.println("CAN bus failed!");
   } // end if
+
+  // Reconfigure alerts to detect frame receive, Bus-Off error and RX queue full states
+  uint32_t alerts_to_enable = TWAI_ALERT_RX_DATA | TWAI_ALERT_ERR_PASS | TWAI_ALERT_BUS_ERROR | TWAI_ALERT_RX_QUEUE_FULL;
+  if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK) {
+    Serial.println("CAN Alerts reconfigured");
+  } else {
+    Serial.println("Failed to reconfigure alerts");
+    return;
+  } // end if
 } // end setUPCanbus
 
 // main processing loop, tx and rx are handled by tasks
@@ -239,11 +251,26 @@ void loop() {
   // for display processing
   lv_timer_handler(); 
 
-  /* place time in seconds into first two bytes of dataframe */
-  uint16_t time = millis()/1000;
-  txFrame.data[0] = highByte(time);
-  txFrame.data[1] = lowByte(time);
-  //delay(100); // small delay
+  // Check if alert happened
+  uint32_t alerts_triggered;
+  twai_read_alerts(&alerts_triggered, pdMS_TO_TICKS(/*POLLING_RATE_MS*/1000));
+  twai_status_info_t twaistatus;
+  twai_get_status_info(&twaistatus);
+
+  // Handle alerts
+  if (alerts_triggered & TWAI_ALERT_ERR_PASS) {
+    Serial.println("Alert: TWAI controller has become error passive.");
+  } // end if
+  if (alerts_triggered & TWAI_ALERT_BUS_ERROR) {
+    Serial.println("Alert: A (Bit, Stuff, CRC, Form, ACK) error has occurred on the bus.");
+    Serial.printf("Bus error count: %lu\n", twaistatus.bus_error_count);
+  } // end if
+  if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL) {
+    Serial.println("Alert: The RX queue is full causing a received frame to be lost.");
+    Serial.printf("RX buffered: %lu\t", twaistatus.msgs_to_rx);
+    Serial.printf("RX missed: %lu\t", twaistatus.rx_missed_count);
+    Serial.printf("RX overrun %lu\n", twaistatus.rx_overrun_count);
+  } // end if
 } // end loop
 
 /* function to send a can frame */
@@ -255,7 +282,8 @@ void canSend(void *pvParameters) {
 
     Serial.print(OBD2.pidName(ENGINE_RPM));
     Serial.print(" = ");
-    Serial.print(OBD2.pidRead(ENGINE_RPM));
+    locEngRPM = OBD2.pidRead(ENGINE_RPM);
+    Serial.print(locEngRPM);
     Serial.print(OBD2.pidUnits(ENGINE_RPM));
     Serial.println();
 
@@ -404,13 +432,15 @@ void encoder_irq()
   {
     if (digitalRead(ENCODER_DT) == State)
     {
-      counter++;
+      // counter clockwise is -ve 
+      counter--;
     }
     else
     {
-      counter--;
-    }
-  }
+      // clockwise is +ve
+      counter++;
+    } // end if
+  } // end if
   old_State = State; // the first position was changed
   move_flag = 1;
 } // end encoder_irq

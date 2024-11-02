@@ -12,3 +12,4 @@ extern int shortButtonStateLatched;
 extern int longButtonStateLatched;
 extern uint32_t txCount;
 extern uint32_t rxCount;
+extern float locEngRPM;
