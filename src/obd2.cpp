@@ -350,27 +350,45 @@ OBD2Class::~OBD2Class()
 
 int OBD2Class::begin()
 {
-  if (!ESP32Can.begin(ESP32Can.convertSpeed(CANSPEED), CAN_TX, CAN_RX, 64, 64)) {
+  // build a filter config
+  twai_filter_config_t myfConfig;
+  myfConfig.acceptance_code = (0x7E8 << 21); /*  */
+  myfConfig.acceptance_mask = ~(0x7FF << 21); /* 11'b000 0000 1111 0xFFFFFFFF*/
+  myfConfig.single_filter = true;
+
+  // Example how to use filtering, https://www.esp32.com/viewtopic.php?t=16575
+  //static const can_filter_config_t f_config = {.acceptance_code = (0x100 << 21),
+  //                                           .acceptance_mask = ~(0x7FF << 21),
+  //                                           .single_filter = true};
+
+  if (!ESP32Can.begin(ESP32Can.convertSpeed(CANSPEED), CAN_TX, CAN_RX, 128, 128, &myfConfig)) {
     return 0;
   }
 
+  // Function params for TwaiCAN.Begin
+  //bool TwaiCAN::begin(TwaiSpeed twaiSpeed, 
+  //                    int8_t txPin, int8_t rxPin,
+  //                    uint16_t txQueue, uint16_t rxQueue,
+  //                    twai_filter_config_t*  fConfig,
+  //                    twai_general_config_t* gConfig,
+  //                    twai_timing_config_t*  tConfig)
   memset(_supportedPids, 0x00, sizeof(_supportedPids));
 
-  // TBD
-  #if 0
+  // TBD need to setup some canbus filter
+  //#if 0
   // first try standard addressing
-  _useExtendedAddressing = false;
-  CAN.filter(0x7e8);
+  //_useExtendedAddressing = false;
+  //CAN.filter(0x7e8);
   if (!supportedPidsRead()) {
     // next try extended addressing
-    _useExtendedAddressing = true;
-    CAN.filterExtended(0x18daf110);
+    //_useExtendedAddressing = true;
+    //CAN.filterExtended(0x18daf110);
 
-    if (!supportedPidsRead()) {
+    //if (!supportedPidsRead()) {
       return 0;
-    } // end if
+    //} // end if
   } // end if
-  #endif
+  //#endif
   return 1;
 } // end odb2 begin
 
@@ -459,9 +477,9 @@ String OBD2Class::pidUnits(uint8_t pid)
 
 float OBD2Class::pidRead(uint8_t pid)
 {
-  //if (!pidSupported(pid)) {
-  //  return NAN;
-  //}
+  if (!pidSupported(pid)) {
+    return NAN;
+  }
 
   #define A value[0]
   #define B value[1]
@@ -766,9 +784,12 @@ int OBD2Class::pidRead(uint8_t mode, uint8_t pid, void* data, int length)
     if (ESP32Can.writeFrame(txFrame,50)) {
       // send success
       // debug tx frame
-      Serial.print("Sending Can Frame timestamp:0x");
-      Serial.print(txFrame.data[0]);
+      Serial.print("Can Frame Tx ID: 0x");
+      Serial.print(txFrame.identifier);
+      Serial.print(" Mode: 0x");
       Serial.print(txFrame.data[1]);
+      Serial.print(" PID: 0x");
+      Serial.print(txFrame.data[2]);
       Serial.println("");
       txCount++;
       break;

@@ -13,3 +13,7 @@ extern int longButtonStateLatched;
 extern uint32_t txCount;
 extern uint32_t rxCount;
 extern float locEngRPM;
+extern float locVehSpd;          
+extern float locEngCoolTemp;          
+extern float locFuelPres;          
+extern float locFuelTankLvl;          

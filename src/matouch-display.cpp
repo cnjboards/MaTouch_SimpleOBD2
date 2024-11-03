@@ -219,6 +219,7 @@ static void setStyle() {
   lv_style_init(&border_style);
   lv_style_set_border_width(&border_style, 2);
   lv_style_set_border_color(&border_style, lv_color_black());
+  lv_style_set_bg_color(&border_style, lv_color_black());
   #if defined(STATION_A)
     lv_style_set_text_font(&border_style, &lv_font_montserrat_24);
   #else
@@ -228,14 +229,14 @@ static void setStyle() {
     lv_style_init(&indicator_style);
     lv_style_set_border_width(&indicator_style, 2);
     lv_style_set_radius(&indicator_style,4);
-    lv_style_set_border_color(&indicator_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_border_color(&indicator_style, lv_palette_main(LV_PALETTE_BLUE_GREY));
     lv_style_set_text_font(&indicator_style, &lv_font_montserrat_20);
 
     // style for indicator readouts
     lv_style_init(&smallIndicator_style);
     lv_style_set_border_width(&smallIndicator_style, 1);
     lv_style_set_radius(&smallIndicator_style,2);
-    lv_style_set_border_color(&smallIndicator_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_border_color(&smallIndicator_style, lv_palette_main(LV_PALETTE_BLUE_GREY));
     lv_style_set_text_font(&indicator_style, &lv_font_montserrat_10);
   #endif
 
@@ -270,33 +271,6 @@ static void buildScreen(void) {
   // build the rpm screen
   buildRPMGuage();
 
-  #if 0
-  // display AP information
-  screenText = lv_label_create(Screen1);
-
-  // x direction +ve is right, -ve is left
-  // y direction +ve is down, -ve is up
-  screenText1 = lv_label_create(Screen1);
-  lv_obj_align_to(screenText1, Screen1, LV_ALIGN_CENTER, XOFF, YBASE);
-  lv_label_set_text(screenText1, "AP Station ID:");
-
-  lv_obj_align_to(screenText, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + YINC));
-  String buf = WiFi.softAPSSID();
-  lv_label_set_text(screenText, buf.c_str());
-
-  screenText2 = lv_label_create(Screen1);
-  lv_obj_align_to(screenText2, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + (2*YINC)));
-  lv_label_set_text_fmt(screenText2, "Can Bus Message TX: %d", txCount);
-
-  screenText3 = lv_label_create(Screen1);
-  lv_obj_align_to(screenText3, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + (3*YINC)));
-  lv_label_set_text_fmt(screenText3, "Can Bus Message RX: %d", rxCount);
-
-  screenText4 = lv_label_create(Screen1);
-  lv_obj_align_to(screenText4, Screen1, LV_ALIGN_CENTER, XOFF, (YBASE + (4*YINC)));
-  lv_label_set_text_fmt(screenText4, "Dial Count: %d", counter);
-  #endif
-
 } // end buildScreen
 
 // locate engine rpm guage on the main screen relative to centre of Screen1 object
@@ -315,12 +289,13 @@ static void buildRPMGuage() {
   // Locate and set size of rpm guage
   lv_obj_align_to(engineRpmGauge, Screen1, LV_ALIGN_CENTER, ENGINE_RPM_GUAGE_XOFFSET, ENGINE_RPM_GUAGE_YOFFSET);
   lv_obj_set_size(engineRpmGauge, RPM_GUAGE_WIDTH, RPM_GUAGE_HIEGHT);
-  
+  lv_obj_set_style_text_color(engineRpmGauge,lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+
   /*Add a scale first*/
   lv_meter_scale_t * scale = lv_meter_add_scale(engineRpmGauge);
   lv_meter_set_scale_range(engineRpmGauge, scale, 0, 60, 230, 155);
-  lv_meter_set_scale_ticks(engineRpmGauge, scale, 61, 4, 20, lv_palette_main(LV_PALETTE_GREY));
-  lv_meter_set_scale_major_ticks(engineRpmGauge, scale, 10, 6, 30, lv_color_black(), 15);
+  lv_meter_set_scale_ticks(engineRpmGauge, scale, 61, 4, 20, lv_palette_main(LV_PALETTE_BLUE));
+  lv_meter_set_scale_major_ticks(engineRpmGauge, scale, 10, 6, 30, lv_palette_main(LV_PALETTE_BLUE_GREY), 15);
   
   /* Green range - arc */
   engineRpmIndic = lv_meter_add_arc(engineRpmGauge, scale, 3, lv_palette_main(LV_PALETTE_GREEN), 0);
@@ -343,50 +318,31 @@ static void buildRPMGuage() {
   lv_meter_set_indicator_end_value(engineRpmGauge, engineRpmIndic, 60);
 
   /* Add the indicator needle and set initial value*/
-  engineRpmIndic = lv_meter_add_needle_line(engineRpmGauge, scale, 6, lv_palette_main(LV_PALETTE_BLUE_GREY), -60);
+  engineRpmIndic = lv_meter_add_needle_line(engineRpmGauge, scale, 4, lv_palette_main(LV_PALETTE_BLUE_GREY), -40);
   lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, 0);
 
   /* some static text on the display */
   engineRPMText = lv_label_create(engineRpmGauge);
-  lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, 20, -45);
+  lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, -10, -55);
   lv_obj_set_style_text_font(engineRPMText, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(engineRPMText, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text(engineRPMText,"RPM \nx100");
 
   /* display the rpm in numerical format as well */
   engineRPMIndicator = lv_label_create(engineRpmGauge);
   lv_obj_add_style(engineRPMIndicator, &indicator_style, 0);
-  lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -38, 18);
+  lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -38, 53);
   lv_obj_set_style_text_font(engineRPMIndicator, &lv_font_montserrat_34, 0);
+  lv_obj_set_style_text_color(engineRPMIndicator, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text_fmt(engineRPMIndicator, " %04d ", 0);
-
-  #if 0
-  /* some static text on the display */
-  sogText = lv_label_create(engineRpmGauge);
-  lv_obj_align_to(sogText, engineRpmGauge, LV_ALIGN_CENTER, -50, 77);
-  lv_obj_set_style_text_font(sogText, &lv_font_montserrat_20, 0);
-  lv_label_set_text(sogText,"SOG");
-
-  /* display the sog in numerical format as well */
-  sogIndicator = lv_label_create(engineRpmGauge);
-  lv_obj_add_style(sogIndicator, &indicator_style, 0);
-  lv_obj_align_to(sogIndicator, engineRpmGauge, LV_ALIGN_CENTER, -10, 70);
-  lv_obj_set_style_text_font(sogIndicator, &lv_font_montserrat_20, 0);
-  lv_label_set_text_fmt(sogIndicator, "%03.1f knts", (float)(locSOG * 1.944));
-  #endif
 
 } // end buildrpmguage
 
 // helper to update the main display including header bar
 static void updateMainScreen(lv_timer_t *timer)
 {
-    // update the meter
+    // update the meter needle
     lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, (uint32_t)(locEngRPM/100));
     // display engine rpm
     lv_label_set_text_fmt(engineRPMIndicator, " %04d ", (uint32_t)(locEngRPM));
-  #if 0
-  // update counts on the screen
-  lv_label_set_text_fmt(screenText2, "Can Bus Message TX: %d", txCount);
-  lv_label_set_text_fmt(screenText3, "Can Bus Message RX: %d", rxCount);
-  lv_label_set_text_fmt(screenText4, "Dial Count: %d", counter);
-  #endif
 } // end updateMainScreen

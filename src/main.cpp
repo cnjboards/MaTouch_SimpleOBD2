@@ -42,16 +42,14 @@
 
 // define how long to wait 
 #define STARTUPDELAY 2500
-
-// allow control of the backlight
-int backLightState = HIGH;
+#define MAXSCREENCOUNT 4
 
 // use this for unique Id
 u_int32_t chipId;
 
 // Globals
 unsigned long pm=0;
-int counter = 0;
+int counter = 0; // use to track current screen
 int State;
 int old_State;
 
@@ -74,8 +72,12 @@ unsigned long shortDebounceDelay = 80;    // the short debounce time
 unsigned long longDebounceDelay = 1000;    // the long debounce time
 unsigned long latchClearDelay = 500;    // the time to allow latched states to be consumed befor autonomous reset
 
-
+// GLOBALS FOR PID VALUES
 float locEngRPM = 0;
+float locVehSpd = 0;          
+float locEngCoolTemp = 0;          
+float locFuelPres = 0;          
+float locFuelTankLvl = 0;          
 
 // forward declarations
 void pin_init();
@@ -96,20 +98,17 @@ extern bool fileUploadStarted;
 #define CAN_TX_PRIORITY     3
 #define CAN_RX_PRIORITY     1
 
-#define CAN_TX_RATE_ms      1500 // how fast to send frames
-#define CAN_RX_RATE_ms      250 // how fast to poll rx queue
+#define CAN_TX_RATE_ms      500 // how fast to poll pid in msec
 
 /* can frame structures for Tx and Rx */
 CanFrame txFrame;
 CanFrame rxFrame;
 
 /* CAN RTOS callback functions */
-void canSend(void *pvParameters);
-void canReceive(void *pvParameters);
+void getOBD2(void *pvParameters);
 
 /* CAN RTOS task handles */
-static TaskHandle_t canTxTask = NULL;
-static TaskHandle_t canRxTask = NULL;
+static TaskHandle_t getOBD2task = NULL;
 
 // setup serial, tasks, can bus etc
 void setup() {
@@ -154,22 +153,13 @@ void setup() {
   setupCanBus(CAN_TX, CAN_RX);
 
   /* setup can send RTOS task */
-  xTaskCreatePinnedToCore(canSend,         /* callback function */
+  xTaskCreatePinnedToCore(getOBD2,         /* callback function */
                           "CAN TX",        /* name of task */
                           4096,            /* stack size (bytes in ESP32, words in FreeRTOS */
                           NULL,            /* parameter to pass to function */
                           CAN_TX_PRIORITY, /* task priority (0 to configMAX_PRIORITES - 1 */
-                          &canTxTask,      /* task handle */
+                          &getOBD2task,    /* task handle */
                           1);              /* CPU core, Arduino runs on 1 */
-
-  /* setup can receive RTOS task */
-	//xTaskCreatePinnedToCore(canReceive,      /* callback function */
-  //                        "CAN RX",        /* name of task */
-  //                        2048,            /* stack size (bytes in ESP32, words in FreeRTOS */
-  //                        NULL,            /* parameter to pass to function */
-  //                        CAN_RX_PRIORITY, /* task priority (0 to configMAX_PRIORITES - 1 */
-  //                        &canRxTask,      /* task handle */
-  //                        1);              /* CPU core, Arduino runs on 1 */
 
   // grab millis for startup delay
   pm = millis();
@@ -191,22 +181,6 @@ void setupCanBus(int8_t can_tx, int8_t can_rx){
   // 500kBps is typical automotive can bus speed
   ESP32Can.setSpeed(ESP32Can.convertSpeed(500));
 
-  #if 0
-  // prebuild tx frame
-  txFrame.extd = 0;
-  #if defined(STATION_A)
-    txFrame.identifier = 0x123; // just pick random id
-  #else
-    txFrame.identifier = 0x122;
-  #endif
-
-  // build fixed tx frame
-  txFrame.data_length_code = 8;
-  for (int8_t i= 0; i<8; i++) {
-      txFrame.data[i] = 0xAA;     /* pad frame with 0xFF */
-  } // end for
-  #endif
-  
   // It is also safe to use .begin() without .end() as it calls it internally
   if(OBD2.begin()) {
       Serial.println("CAN bus started!");
@@ -253,7 +227,7 @@ void loop() {
 
   // Check if alert happened
   uint32_t alerts_triggered;
-  twai_read_alerts(&alerts_triggered, pdMS_TO_TICKS(/*POLLING_RATE_MS*/1000));
+  twai_read_alerts(&alerts_triggered, pdMS_TO_TICKS(1000));
   twai_status_info_t twaistatus;
   twai_get_status_info(&twaistatus);
 
@@ -273,59 +247,62 @@ void loop() {
   } // end if
 } // end loop
 
-/* function to send a can frame */
-void canSend(void *pvParameters) {
+/* function to poll obd2 pids */
+void getOBD2(void *pvParameters) {
+  
+  // pid to poll
+  uint8_t locPID;
 
-  /* this task will run forever at frequency set above 
-   * to stop this task from running call vTaskSuspend(canTxTask) in the main loop */
+  /* this task will run forever at frequency set above */
 	for (;;) {
+    float dbg = 0;
+    switch(counter) {
 
-    Serial.print(OBD2.pidName(ENGINE_RPM));
+        case 0:
+          locPID = ENGINE_RPM;
+          locEngRPM = OBD2.pidRead(locPID);
+          dbg = locEngRPM;
+          break;
+
+        case 1:
+          locPID = VEHICLE_SPEED;
+          locVehSpd = OBD2.pidRead(locPID);          
+          dbg = locVehSpd;
+          break;
+
+        case 2:
+          locPID = ENGINE_COOLANT_TEMPERATURE;
+          locEngCoolTemp = OBD2.pidRead(locPID);          
+          dbg = locEngCoolTemp;
+          break;
+
+        case 3:
+          locPID = FUEL_PRESSURE;
+          locFuelPres = OBD2.pidRead(locPID);          
+          dbg = locFuelPres;
+          break;
+
+        case 4:
+          locPID = FUEL_TANK_LEVEL_INPUT;
+          locFuelTankLvl = OBD2.pidRead(locPID);          
+          dbg = locFuelTankLvl;
+          break;
+    } // end switch
+
+    // debug code, dump the pid name and value
+    Serial.print(OBD2.pidName(locPID));
     Serial.print(" = ");
-    locEngRPM = OBD2.pidRead(ENGINE_RPM);
-    Serial.print(locEngRPM);
-    Serial.print(OBD2.pidUnits(ENGINE_RPM));
+    Serial.print(dbg);
+    Serial.print(OBD2.pidUnits(locPID));
     Serial.println();
 
-    #if 0
-		ESP32Can.writeFrame(&txFrame);           /* send dataframe */
-
-    // debug tx frame
-    Serial.print("Sending Can Frame timestamp:0x");
-    Serial.print(txFrame.data[0]);
-    Serial.print(txFrame.data[1]);
-    Serial.println("");
-    txCount++;
-    #endif
+    // this is our pid polling frequency
     vTaskDelay(CAN_TX_RATE_ms/portTICK_PERIOD_MS);
 	} // end for
-} // end canSend
 
-// Fuction to receive and print a valid can frame
-void canReceive(void *pvParameters) {
-	const TickType_t xDelay = CAN_RX_RATE_ms / portTICK_PERIOD_MS;
-  
-  // RX Task startup message
-  Serial.println("Can RX Waiting");
-
-  // wait forever for rx data
-	for (;;) {
-    if (ESP32Can.readFrame(&rxFrame)) {  /* only print when CAN message is received*/
-      Serial.print("RX Frame: id=");
-      Serial.print(rxFrame.identifier, HEX);               /* print the CAN ID*/
-      Serial.print(" Length=");
-      Serial.print(rxFrame.data_length_code);              /* print number of bytes in data frame*/
-      Serial.print(" Payload=");
-      for (int i=0; i<rxFrame.data_length_code; i++) {     /* print the data frame*/
-        Serial.print(rxFrame.data[i], HEX);
-      } // end for
-      rxCount++;
-
-      Serial.println();
-    } // end if
-		vTaskDelay(xDelay); /* do something else until it is time to receive again. This is a simple delay task. */
-	}// end for
-} // end canRecieve
+  // if we get here, reboot
+  esp_restart();
+} // end getOBD2
 
 // setup all the IO
 void pin_init()
@@ -336,7 +313,7 @@ void pin_init()
 
     // backlight display, leave on for now
     pinMode(TFT_BL,OUTPUT_OPEN_DRAIN);
-    digitalWrite(TFT_BL, backLightState);
+    digitalWrite(TFT_BL, HIGH);
 
     // rotary encoder IO
     pinMode(ENCODER_CLK, INPUT_PULLUP);
@@ -353,8 +330,18 @@ void pin_init()
     buttonState = lastButtonState;
     buttonStateLong = lastButtonState;
   #else
+
+    const int ledChannel = 0;
+    const int ledPin = 5;
+    const int frequency = 5000;
+    const int resolution = 8;
+
+    // try using pwm for backlight control
     pinMode(TFT_BLK, OUTPUT);
-    digitalWrite(TFT_BLK, HIGH);
+    //digitalWrite(TFT_BLK, HIGH);
+    ledcSetup(ledChannel, frequency, resolution);
+    ledcAttachPin(TFT_BLK, ledChannel);
+    ledcWrite(ledChannel, 0xff);
 
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     pinMode(ENCODER_CLK, INPUT_PULLUP);
@@ -367,8 +354,6 @@ void pin_init()
     lastButtonState = digitalRead(BUTTON_PIN);
     buttonState = lastButtonState;
     buttonStateLong = lastButtonState;
-
-    //pinMode(ADC_INPUT_1, INPUT);
   #endif
 } // end pin_init
 
@@ -434,12 +419,17 @@ void encoder_irq()
     {
       // counter clockwise is -ve 
       counter--;
+      if (counter < 0)
+        counter =0;
     }
     else
     {
       // clockwise is +ve
       counter++;
+      if (counter > MAXSCREENCOUNT)
+        counter = MAXSCREENCOUNT;
     } // end if
+    
   } // end if
   old_State = State; // the first position was changed
   move_flag = 1;
