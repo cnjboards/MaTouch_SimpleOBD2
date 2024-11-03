@@ -1,19 +1,12 @@
-# MaTouch_SimpleCan
-A simple point to point Canbus implementation between 2 MaTouch round displays. 
-Station A is MaTouch 2.1" Round display. 
-Station B is MaTouch 1.28" Round display (GC9A01).
-Data rate is 500Kbps.
+# MaTouch_SimpleOBD2
+This example extends the SimpleCan example and adds vehicle OBD2 polling. Code is written to support
+2 display sizes, the 2.1" and the 1.28" MaTouch round tft displays.
 
-Topology:
+This example is provided as-is and there are no guarantees this will work for your vehicle.
 
-[120ohm] <--Canbus--> [StnA] <--Canbus--> [StnB] <--Canbus--> [120ohm]
+This code is supplied as a example for:
+1) Canbus with filtering on ESP32-S3
+2) Reading generic OBD2 using the Canbus
+3) Displaying values on tft using LVGL.
+4) Simple rotary encoder for user input.
 
-Both displays are using the CNJBoards Canbus adapter board for round displays.
-Adapter boards can be found here:
-https://www.tindie.com/products/cnjboards/can-bus-adapter-card-for-matouch-round-displays/
-
-Station A: MaTouch 2.1" Round Display
-![DSCF1982](https://github.com/user-attachments/assets/255a943f-7793-4267-8b99-ce4e99aebc74)
-
-Station B: MaTouch 1.28" Round Display(GC9A01)
-![DSCF1983](https://github.com/user-attachments/assets/bbe76624-028c-4edc-9a0b-a586fb0cdd9a)
