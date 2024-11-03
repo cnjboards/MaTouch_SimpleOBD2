@@ -23,4 +23,3 @@ A simple OBD2 test rig for test use in a vehicle.
 <img src="https://github.com/user-attachments/assets/91524e45-1c55-4a37-ad5d-fb50baa0ab1c" width="450" height="375"><img src="https://github.com/user-attachments/assets/2a2450bc-d08d-4633-97db-7269ee557f14" width="450" height="375">
 <img src="https://github.com/user-attachments/assets/c1208390-5f0e-4a8d-8dbe-8328af4df076" width="450" height="375"><img src="https://github.com/user-attachments/assets/4c173855-c069-4c0c-ae36-c5be93d9750c" width="450" height="375">
 
-Note: 2.1" display support is still under construction :-)
