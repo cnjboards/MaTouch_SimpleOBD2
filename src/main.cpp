@@ -189,6 +189,8 @@ void setupCanBus(int8_t can_tx, int8_t can_rx){
       Serial.println("CAN bus started!");
   } else {
       Serial.println("CAN bus failed!");
+      // reboot
+      esp_restart();
   } // end if
 
   // Reconfigure alerts to detect frame receive, Bus-Off error and RX queue full states
@@ -258,6 +260,12 @@ void getOBD2(void *pvParameters) {
 
   /* this task will run forever at frequency set above */
 	for (;;) {
+    #ifdef STATION_A
+    if (move_flag == 1) {
+      move_flag = 0;
+      delay(10);
+    } // end if
+    #endif
     float dbg = 0;
     switch(counter) {
 
@@ -332,8 +340,9 @@ void pin_init()
     lastButtonState = digitalRead(BUTTON_PIN);
     buttonState = lastButtonState;
     buttonStateLong = lastButtonState;
+    
+    move_flag = 1;
   #else
-
     const int ledChannel = 0;
     const int ledPin = 5;
     const int frequency = 5000;
@@ -418,7 +427,11 @@ void encoder_irq()
   State = digitalRead(ENCODER_CLK);
   if (State != old_State)
   {
-    if (digitalRead(ENCODER_DT) == State)
+    #ifdef STATION_A
+      if (!digitalRead(ENCODER_DT) == State)
+    #else
+      if (digitalRead(ENCODER_DT) == State)
+    #endif
     {
       // counter clockwise is -ve 
       counter--;

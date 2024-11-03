@@ -239,10 +239,12 @@ static void setStyle() {
   lv_style_set_border_width(&border_style, 2);
   lv_style_set_border_color(&border_style, lv_color_black());
   lv_style_set_bg_color(&border_style, lv_color_black());
+
   #if defined(STATION_A)
     lv_style_set_text_font(&border_style, &lv_font_montserrat_24);
   #else
     lv_style_set_text_font(&border_style, &lv_font_montserrat_14);
+  #endif
 
     // style for indicator readouts
     lv_style_init(&indicator_style);
@@ -257,8 +259,6 @@ static void setStyle() {
     lv_style_set_radius(&smallIndicator_style,2);
     lv_style_set_border_color(&smallIndicator_style, lv_palette_main(LV_PALETTE_BLUE_GREY));
     lv_style_set_text_font(&indicator_style, &lv_font_montserrat_10);
-  #endif
-
 
 } // end setstyle
 
@@ -292,11 +292,20 @@ static void buildScreen1(void) {
 
 } // end buildScreen1
 
-// locate engine rpm guage on the main screen relative to centre of Screen1 object
-#define RPM_GUAGE_HIEGHT 235
-#define RPM_GUAGE_WIDTH 235
-#define ENGINE_RPM_GUAGE_XOFFSET -52
-#define ENGINE_RPM_GUAGE_YOFFSET -45
+#ifdef STATION_A
+  // locate engine rpm guage on the main screen relative to centre of Screen1 object
+  #define RPM_GUAGE_HIEGHT 440
+  #define RPM_GUAGE_WIDTH 440
+  #define ENGINE_RPM_GUAGE_XOFFSET -155
+  #define ENGINE_RPM_GUAGE_YOFFSET -150
+#else
+  // locate engine rpm guage on the main screen relative to centre of Screen1 object
+  #define RPM_GUAGE_HIEGHT 235
+  #define RPM_GUAGE_WIDTH 235
+  #define ENGINE_RPM_GUAGE_XOFFSET -52
+  #define ENGINE_RPM_GUAGE_YOFFSET -45
+#endif
+
 
 // build the rpm guage on the main screen
 static void buildRPMGuage() {
@@ -342,18 +351,28 @@ static void buildRPMGuage() {
 
   /* some static text on the display */
   engineRPMText = lv_label_create(engineRpmGauge);
-  lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, -10, -55);
-  lv_obj_set_style_text_font(engineRPMText, &lv_font_montserrat_20, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, 0, -100);
+    lv_obj_set_style_text_font(engineRPMText, &lv_font_montserrat_34, 0);
+  #else
+    lv_obj_align_to(engineRPMText, engineRpmGauge, LV_ALIGN_CENTER, -10, -55);
+    lv_obj_set_style_text_font(engineRPMText, &lv_font_montserrat_20, 0);
+  #endif
   lv_obj_set_style_text_color(engineRPMText, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text(engineRPMText,"RPM \nx100");
 
   /* display the rpm in numerical format as well */
   engineRPMIndicator = lv_label_create(engineRpmGauge);
   lv_obj_add_style(engineRPMIndicator, &indicator_style, 0);
-  lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -38, 53);
-  lv_obj_set_style_text_font(engineRPMIndicator, &lv_font_montserrat_34, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -58, 80);
+    lv_obj_set_style_text_font(engineRPMIndicator, &lv_font_montserrat_44, 0);
+  #else
+    lv_obj_align_to(engineRPMIndicator, engineRpmGauge, LV_ALIGN_CENTER, -38, 53);
+    lv_obj_set_style_text_font(engineRPMIndicator, &lv_font_montserrat_34, 0);
+  #endif
   lv_obj_set_style_text_color(engineRPMIndicator, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
-  lv_label_set_text_fmt(engineRPMIndicator, " %04d ", 0);
+  lv_label_set_text_fmt(engineRPMIndicator, "%04d", 0);
 
 } // end buildrpmguage
 
@@ -415,18 +434,28 @@ static void buildSpdGuage() {
 
   /* some static text on the display */
   engineSpdText = lv_label_create(engineSpdGauge);
-  lv_obj_align_to(engineSpdText, engineSpdGauge, LV_ALIGN_CENTER, -10, -55);
-  lv_obj_set_style_text_font(engineSpdText, &lv_font_montserrat_20, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(engineSpdText, engineSpdGauge, LV_ALIGN_CENTER, 0, -100);
+    lv_obj_set_style_text_font(engineSpdText, &lv_font_montserrat_34, 0);
+  #else
+    lv_obj_align_to(engineSpdText, engineSpdGauge, LV_ALIGN_CENTER, -10, -55);
+    lv_obj_set_style_text_font(engineSpdText, &lv_font_montserrat_20, 0);
+  #endif
   lv_obj_set_style_text_color(engineSpdText, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text(engineSpdText,"SPD \nKPH");
 
   /* display the rpm in numerical format as well */
   engineSpdIndicator = lv_label_create(engineSpdGauge);
   lv_obj_add_style(engineSpdIndicator, &indicator_style, 0);
-  lv_obj_align_to(engineSpdIndicator, engineSpdGauge, LV_ALIGN_CENTER, -38, 53);
-  lv_obj_set_style_text_font(engineSpdIndicator, &lv_font_montserrat_34, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(engineSpdIndicator, engineSpdGauge, LV_ALIGN_CENTER, -58, 80);
+    lv_obj_set_style_text_font(engineSpdIndicator, &lv_font_montserrat_44, 0);
+  #else
+    lv_obj_align_to(engineSpdIndicator, engineSpdGauge, LV_ALIGN_CENTER, -38, 53);
+    lv_obj_set_style_text_font(engineSpdIndicator, &lv_font_montserrat_34, 0);
+  #endif
   lv_obj_set_style_text_color(engineSpdIndicator, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
-  lv_label_set_text_fmt(engineSpdIndicator, " %03d ", 0);
+  lv_label_set_text_fmt(engineSpdIndicator, "%03d", 0);
 
 } // end buildSpdguage
 
@@ -443,8 +472,13 @@ static void buildScreen3(void) {
   //buildRPMGuage();
   // TBD...
   screen3Text = lv_label_create(Screen3);
-  lv_obj_align_to(screen3Text, Screen3, LV_ALIGN_CENTER, -75, 25);
-  lv_obj_set_style_text_font(screen3Text, &lv_font_montserrat_20, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(screen3Text, Screen3, LV_ALIGN_CENTER, -75, 0);
+    lv_obj_set_style_text_font(screen3Text, &lv_font_montserrat_34, 0);
+  #else
+    lv_obj_align_to(screen3Text, Screen3, LV_ALIGN_CENTER, -75, 25);
+    lv_obj_set_style_text_font(screen3Text, &lv_font_montserrat_20, 0);
+  #endif
   lv_obj_set_style_text_color(screen3Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text_fmt(screen3Text,"Air Temp %03d C",(uint32_t)locEngCoolTemp);
 
@@ -463,8 +497,13 @@ static void buildScreen4(void) {
   // buildRPMGuage();
   // TBD...
   screen4Text = lv_label_create(Screen4);
-  lv_obj_align_to(screen4Text, Screen4, LV_ALIGN_CENTER, -75, 25);
-  lv_obj_set_style_text_font(screen4Text, &lv_font_montserrat_20, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(screen4Text, Screen4, LV_ALIGN_CENTER, -75, 0);
+    lv_obj_set_style_text_font(screen4Text, &lv_font_montserrat_34, 0);
+  #else
+    lv_obj_align_to(screen4Text, Screen4, LV_ALIGN_CENTER, -75, 25);
+    lv_obj_set_style_text_font(screen4Text, &lv_font_montserrat_20, 0);
+  #endif
   lv_obj_set_style_text_color(screen4Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text_fmt(screen4Text,"Oil Temp %03d",(uint32_t)locFuelPres);
 
@@ -483,8 +522,13 @@ static void buildScreen5(void) {
   // buildRPMGuage();
   // TBD...
   screen5Text = lv_label_create(Screen5);
-  lv_obj_align_to(screen5Text, Screen5, LV_ALIGN_CENTER, -75, 25);
-  lv_obj_set_style_text_font(screen5Text, &lv_font_montserrat_20, 0);
+  #ifdef STATION_A
+    lv_obj_align_to(screen5Text, Screen5, LV_ALIGN_CENTER, -75, 0);
+    lv_obj_set_style_text_font(screen5Text, &lv_font_montserrat_34, 0);
+  #else
+    lv_obj_align_to(screen5Text, Screen5, LV_ALIGN_CENTER, -75, 25);
+    lv_obj_set_style_text_font(screen5Text, &lv_font_montserrat_20, 0);
+  #endif
   lv_obj_set_style_text_color(screen5Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
   lv_label_set_text_fmt(screen5Text,"Fuel Lvl %03d",(uint32_t)locFuelTankLvl);
 
@@ -520,11 +564,11 @@ static void updateMainScreen(lv_timer_t *timer)
 
     // realtime update screen 1, engine rpm
     lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, (uint32_t)(locEngRPM/100));
-    lv_label_set_text_fmt(engineRPMIndicator, " %04d ", (uint32_t)(locEngRPM));
+    lv_label_set_text_fmt(engineRPMIndicator, "%04d", (uint32_t)(locEngRPM));
     
     // realtime update screen 2, speed
     lv_meter_set_indicator_value(engineSpdGauge, engineSpdIndic, (uint32_t)(locVehSpd));
-    lv_label_set_text_fmt(engineSpdIndicator, " %03d ", (uint32_t)(locVehSpd));
+    lv_label_set_text_fmt(engineSpdIndicator, "%03d", (uint32_t)(locVehSpd));
 
     // realtime update screen 3
     lv_label_set_text_fmt(screen3Text,"Air Temp %03d",(uint32_t)locEngCoolTemp);
