@@ -1,7 +1,8 @@
 # MaTouch_SimpleOBD2
-This example extends the SimpleCan example and adds vehicle OBD2 polling. Code is written to support
+This example extends the MaTouch_SimpleCan example by adding OBD2 PID polling. Code is written to support
 2 display sizes, the 2.1" and the 1.28" MaTouch round tft displays. This example is provided as-is. 
-There are no guarantees this will work for your vehicle.
+There are no guarantees this will work for your vehicle although it was tested on 2 different makes as well
+as a generic DIY OBD2 ECU emulator.
 
 Canbus and 12V adapter boards can be found here: 
 
