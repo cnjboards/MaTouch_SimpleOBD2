@@ -149,24 +149,38 @@ static lv_style_t border_style;
 static lv_style_t indicator_style;
 static lv_style_t smallIndicator_style;
 static lv_timer_t *updateMainScreenTimer;
-static lv_obj_t *Screen1;
 static lv_obj_t *engineRpmGauge;
 static lv_meter_indicator_t *engineRpmIndic;
 static lv_obj_t *engineRPMIndicator;
 static lv_obj_t *engineRPMText;
-static lv_obj_t *sogIndicator;
-static lv_obj_t *sogText;
-static lv_obj_t *screenText;
+static lv_obj_t *engineSpdGauge;
+static lv_meter_indicator_t *engineSpdIndic;
+static lv_obj_t *engineSpdIndicator;
+static lv_obj_t *engineSpdText;
 static lv_obj_t *screenText1;
 static lv_obj_t *screenText2;
 static lv_obj_t *screenText3;
 static lv_obj_t *screenText4;
+static lv_obj_t *screenText5;
+static lv_obj_t *screen3Text;
+static lv_obj_t *screen4Text;
+static lv_obj_t *screen5Text;
+static lv_obj_t *Screen1;
+static lv_obj_t *Screen2;
+static lv_obj_t *Screen3;
+static lv_obj_t *Screen4;
+static lv_obj_t *Screen5;
 
 // forward declarations
 static void setStyle(void);
-static void buildScreen(void);
+static void buildScreen1(void);
+static void buildScreen2(void);
+static void buildScreen3(void);
+static void buildScreen4(void);
+static void buildScreen5(void);
 static void updateMainScreen(lv_timer_t *);
 static void buildRPMGuage(void);
+static void buildSpdGuage(void);
 
 // init lvgl graphics
 void doLvglInit(){
@@ -203,10 +217,15 @@ void doLvglInit(){
     setStyle();
 
     // create simple screen
-    buildScreen();
+    buildScreen1();
+    buildScreen2();
+    buildScreen3();
+    buildScreen4();
+    buildScreen5();
 
     // activate the screen on startup
     lv_scr_load(Screen1);
+    curScreen = counter;
 
     // start timer for the screen refresh 
     updateMainScreenTimer = lv_timer_create(updateMainScreen, SCREEN_REFRESH, NULL);
@@ -258,8 +277,8 @@ static void setStyle() {
     #define YINC 20
 #endif
 
-// screen builder
-static void buildScreen(void) {
+// screen builders
+static void buildScreen1(void) {
   // main screen frame
   Screen1 = lv_obj_create(NULL);
   lv_obj_add_style(Screen1, &border_style, 0);
@@ -271,7 +290,7 @@ static void buildScreen(void) {
   // build the rpm screen
   buildRPMGuage();
 
-} // end buildScreen
+} // end buildScreen1
 
 // locate engine rpm guage on the main screen relative to centre of Screen1 object
 #define RPM_GUAGE_HIEGHT 235
@@ -338,11 +357,181 @@ static void buildRPMGuage() {
 
 } // end buildrpmguage
 
-// helper to update the main display including header bar
+static void buildScreen2(void) {
+  // main screen frame
+  Screen2 = lv_obj_create(NULL);
+  lv_obj_add_style(Screen2, &border_style, 0);
+  lv_obj_set_size(Screen2, MS_WIDTH, MS_HIEGHT);
+  lv_obj_align(Screen2, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_scrollbar_mode(Screen2, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(Screen2, LV_OBJ_FLAG_SCROLLABLE);
+
+  // build the rpm screen
+  buildSpdGuage();
+
+} // end buildScreen2
+
+// build the rpm guage on the main screen
+static void buildSpdGuage() {
+  // create and rpm guage on main display
+  engineSpdGauge = lv_meter_create(Screen2);
+  // this removes the outline, allows for more usable space
+  lv_obj_remove_style(engineSpdGauge, NULL, LV_PART_MAIN);
+  
+  // Locate and set size of rpm guage
+  lv_obj_align_to(engineSpdGauge, Screen2, LV_ALIGN_CENTER, ENGINE_RPM_GUAGE_XOFFSET, ENGINE_RPM_GUAGE_YOFFSET);
+  lv_obj_set_size(engineSpdGauge, RPM_GUAGE_WIDTH, RPM_GUAGE_HIEGHT);
+  lv_obj_set_style_text_color(engineSpdGauge,lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+
+  /*Add a scale first*/
+  lv_meter_scale_t * scale = lv_meter_add_scale(engineSpdGauge);
+  lv_meter_set_scale_range(engineSpdGauge, scale, 0, 180, 230, 155);
+  lv_meter_set_scale_ticks(engineSpdGauge, scale, 37, 4, 20, lv_palette_main(LV_PALETTE_BLUE));
+  lv_meter_set_scale_major_ticks(engineSpdGauge, scale, 6, 6, 30, lv_palette_main(LV_PALETTE_BLUE_GREY), 15);
+  
+  /* Green range - arc */
+  engineSpdIndic = lv_meter_add_arc(engineSpdGauge, scale, 3, lv_palette_main(LV_PALETTE_GREEN), 0);
+  lv_meter_set_indicator_start_value(engineSpdGauge, engineSpdIndic, 0);
+  lv_meter_set_indicator_end_value(engineSpdGauge, engineSpdIndic, 90);
+
+  /* Green range - ticks */
+  engineSpdIndic = lv_meter_add_scale_lines(engineSpdGauge, scale, lv_palette_main(LV_PALETTE_GREEN), lv_palette_main(LV_PALETTE_GREEN),false, 0);
+  lv_meter_set_indicator_start_value(engineSpdGauge, engineSpdIndic, 0);
+  lv_meter_set_indicator_end_value(engineSpdGauge, engineSpdIndic, 90);
+
+  /* Red range - arc */
+  engineSpdIndic = lv_meter_add_arc(engineSpdGauge, scale, 3, lv_palette_main(LV_PALETTE_BLUE), 0);
+  lv_meter_set_indicator_start_value(engineSpdGauge, engineSpdIndic, 90);
+  lv_meter_set_indicator_end_value(engineSpdGauge, engineSpdIndic, 180);
+
+  /* Red range - arc */
+  engineSpdIndic = lv_meter_add_scale_lines(engineSpdGauge, scale, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED), false,0);
+  lv_meter_set_indicator_start_value(engineSpdGauge, engineSpdIndic, 120);
+  lv_meter_set_indicator_end_value(engineSpdGauge, engineSpdIndic, 180);
+
+  /* Add the indicator needle and set initial value*/
+  engineSpdIndic = lv_meter_add_needle_line(engineSpdGauge, scale, 4, lv_palette_main(LV_PALETTE_BLUE_GREY), -40);
+  lv_meter_set_indicator_value(engineSpdGauge, engineSpdIndic, 0);
+
+  /* some static text on the display */
+  engineSpdText = lv_label_create(engineSpdGauge);
+  lv_obj_align_to(engineSpdText, engineSpdGauge, LV_ALIGN_CENTER, -10, -55);
+  lv_obj_set_style_text_font(engineSpdText, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(engineSpdText, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+  lv_label_set_text(engineSpdText,"SPD \nKPH");
+
+  /* display the rpm in numerical format as well */
+  engineSpdIndicator = lv_label_create(engineSpdGauge);
+  lv_obj_add_style(engineSpdIndicator, &indicator_style, 0);
+  lv_obj_align_to(engineSpdIndicator, engineSpdGauge, LV_ALIGN_CENTER, -38, 53);
+  lv_obj_set_style_text_font(engineSpdIndicator, &lv_font_montserrat_34, 0);
+  lv_obj_set_style_text_color(engineSpdIndicator, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+  lv_label_set_text_fmt(engineSpdIndicator, " %03d ", 0);
+
+} // end buildSpdguage
+
+static void buildScreen3(void) {
+  // main screen frame
+  Screen3 = lv_obj_create(NULL);
+  lv_obj_add_style(Screen3, &border_style, 0);
+  lv_obj_set_size(Screen3, MS_WIDTH, MS_HIEGHT);
+  lv_obj_align(Screen3, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_scrollbar_mode(Screen3, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(Screen3, LV_OBJ_FLAG_SCROLLABLE);
+
+  // build the rpm screen
+  //buildRPMGuage();
+  // TBD...
+  screen3Text = lv_label_create(Screen3);
+  lv_obj_align_to(screen3Text, Screen3, LV_ALIGN_CENTER, -75, 25);
+  lv_obj_set_style_text_font(screen3Text, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(screen3Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+  lv_label_set_text_fmt(screen3Text,"Air Temp %03d C",(uint32_t)locEngCoolTemp);
+
+} // end buildScreen3
+
+static void buildScreen4(void) {
+  // main screen frame
+  Screen4 = lv_obj_create(NULL);
+  lv_obj_add_style(Screen4, &border_style, 0);
+  lv_obj_set_size(Screen4, MS_WIDTH, MS_HIEGHT);
+  lv_obj_align(Screen4, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_scrollbar_mode(Screen4, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(Screen4, LV_OBJ_FLAG_SCROLLABLE);
+
+  // build the rpm screen
+  // buildRPMGuage();
+  // TBD...
+  screen4Text = lv_label_create(Screen4);
+  lv_obj_align_to(screen4Text, Screen4, LV_ALIGN_CENTER, -75, 25);
+  lv_obj_set_style_text_font(screen4Text, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(screen4Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+  lv_label_set_text_fmt(screen4Text,"Oil Temp %03d",(uint32_t)locFuelPres);
+
+} // end buildScreen4
+
+static void buildScreen5(void) {
+  // main screen frame
+  Screen5 = lv_obj_create(NULL);
+  lv_obj_add_style(Screen5, &border_style, 0);
+  lv_obj_set_size(Screen5, MS_WIDTH, MS_HIEGHT);
+  lv_obj_align(Screen5, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_scrollbar_mode(Screen5, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(Screen5, LV_OBJ_FLAG_SCROLLABLE);
+
+  // build the rpm screen
+  // buildRPMGuage();
+  // TBD...
+  screen5Text = lv_label_create(Screen5);
+  lv_obj_align_to(screen5Text, Screen5, LV_ALIGN_CENTER, -75, 25);
+  lv_obj_set_style_text_font(screen5Text, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(screen5Text, lv_palette_main(LV_PALETTE_BLUE_GREY),0);
+  lv_label_set_text_fmt(screen5Text,"Fuel Lvl %03d",(uint32_t)locFuelTankLvl);
+
+} // end buildScreen5
+
+
+// realtime screen updater
 static void updateMainScreen(lv_timer_t *timer)
 {
-    // update the meter needle
+    // check if screen changed
+    if (curScreen != counter ) {
+      // dial moved, change screen
+      curScreen = counter;
+      // display the coreect screen
+      switch(curScreen){
+        case 0:
+          lv_scr_load(Screen1);
+          break;
+        case 1:
+          lv_scr_load(Screen2);
+          break;
+        case 2:
+          lv_scr_load(Screen3);
+          break;
+        case 3:
+          lv_scr_load(Screen4);
+          break;
+        case 4:
+          lv_scr_load(Screen5);
+          break;
+      } // end switch
+    } // end if
+
+    // realtime update screen 1, engine rpm
     lv_meter_set_indicator_value(engineRpmGauge, engineRpmIndic, (uint32_t)(locEngRPM/100));
-    // display engine rpm
     lv_label_set_text_fmt(engineRPMIndicator, " %04d ", (uint32_t)(locEngRPM));
+    
+    // realtime update screen 2, speed
+    lv_meter_set_indicator_value(engineSpdGauge, engineSpdIndic, (uint32_t)(locVehSpd));
+    lv_label_set_text_fmt(engineSpdIndicator, " %03d ", (uint32_t)(locVehSpd));
+
+    // realtime update screen 3
+    lv_label_set_text_fmt(screen3Text,"Air Temp %03d",(uint32_t)locEngCoolTemp);
+
+    // realtime update screen 4
+    lv_label_set_text_fmt(screen4Text,"Oil Temp %03d",(uint32_t)locFuelPres);
+
+    // realtime update screen 5
+    lv_label_set_text_fmt(screen5Text,"Fuel Lvl %03d",(uint32_t)locFuelTankLvl);  
 } // end updateMainScreen

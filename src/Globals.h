@@ -3,6 +3,7 @@
 // Uncomment for Station A, comment for Station B
 
 extern int counter;
+extern int curScreen;
 extern int State;
 extern int old_State;
 extern int move_flag;

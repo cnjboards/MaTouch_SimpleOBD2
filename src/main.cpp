@@ -11,14 +11,6 @@
 #include <WebServer.h>
 #include "obd2.h"
 
-#if defined(STATION_A)
-  #warning "Compiling for Station_A"
-#else
-  #warning "Compiling for Station_B"
-#endif
-
-#include "matouch-pins.h"
-
 /* ESP32 Arduino CAN RTOS Example
  *     This example will send and receive messages on the CAN bus using RTOS tasks
  *     
@@ -40,6 +32,16 @@
 
 // Both using CNJBoards Can bus adapter card:
 
+#if defined(STATION_A)
+  #warning "Compiling for Station_A"
+#else
+  #warning "Compiling for Station_B"
+#endif
+
+#include "matouch-pins.h"
+
+
+
 // define how long to wait 
 #define STARTUPDELAY 2500
 #define MAXSCREENCOUNT 4
@@ -50,6 +52,7 @@ u_int32_t chipId;
 // Globals
 unsigned long pm=0;
 int counter = 0; // use to track current screen
+int curScreen;
 int State;
 int old_State;
 
@@ -271,13 +274,13 @@ void getOBD2(void *pvParameters) {
           break;
 
         case 2:
-          locPID = ENGINE_COOLANT_TEMPERATURE;
+          locPID = AIR_INTAKE_TEMPERATURE;
           locEngCoolTemp = OBD2.pidRead(locPID);          
           dbg = locEngCoolTemp;
           break;
 
         case 3:
-          locPID = FUEL_PRESSURE;
+          locPID = ENGINE_OIL_TEMPERATURE;
           locFuelPres = OBD2.pidRead(locPID);          
           dbg = locFuelPres;
           break;
